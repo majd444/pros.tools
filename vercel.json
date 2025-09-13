@@ -1,5 +1,9 @@
 {
   "version": 2,
+  "rewrites": [
+    { "source": "/widget.js", "destination": "/public/widget.js" },
+    { "source": "/test", "destination": "/public/test.html" }
+  ],
   "builds": [
     { "src": "api/**/*.js", "use": "@vercel/node" },
     { "src": "public/**", "use": "@vercel/static" }
