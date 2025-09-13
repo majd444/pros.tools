@@ -1,12 +1,6 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "public/**", "use": "@vercel/static" }
-  ],
-  "rewrites": [
-    { "source": "/test", "destination": "/public/test.html" },
-    { "source": "/:path*", "destination": "/public/:path*" }
-  ],
+  "cleanUrls": true,
   "headers": [
     {
       "source": "/widget.js",

@@ -15,7 +15,7 @@
   //         data-bot-id="USER1234"
   //         data-convex-url="https://your-convex.convex.cloud"
   //         data-backend-url="https://your-backend.com/api/chat"></script>
-  const CONVEX_URL = currentScript.getAttribute("data-convex-url") || "https://your-convex-instance.convex.cloud";
+  const CONVEX_URL = currentScript.getAttribute("data-convex-url") || "";
   const BACKEND_CHAT_URL = currentScript.getAttribute("data-backend-url") || "https://your-backend.com/api/chat";
   // Optional: enforce required fields in pre-chat form (default: false)
   const ENFORCE_REQUIRED = currentScript.getAttribute("data-enforce-required") === "true";
@@ -44,7 +44,10 @@
 
   async function fetchAgentConfig(botId) {
     try {
-      const res = await fetch(`${CONVEX_URL.replace(/\/$/, "")}/getAgent?botId=${encodeURIComponent(botId)}`, {
+      const endpoint = CONVEX_URL
+        ? `${CONVEX_URL.replace(/\/$/, "")}/getAgent?botId=${encodeURIComponent(botId)}`
+        : `/api/getAgent?botId=${encodeURIComponent(botId)}`;
+      const res = await fetch(endpoint, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
       });
