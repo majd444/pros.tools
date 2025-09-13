@@ -7,6 +7,7 @@ module.exports = async (req, res) => {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
+    "Cache-Control": "no-store"
   };
 
   if (req.method === "OPTIONS") {
@@ -29,26 +30,37 @@ module.exports = async (req, res) => {
       return;
     }
 
-    const convexUrl = process.env.CONVEX_URL;
+    const convexHttp = process.env.CONVEX_HTTP_URL;
+    const convexUrl = convexHttp || process.env.CONVEX_URL;
     if (!convexUrl) {
       Object.entries(corsHeaders).forEach(([k, v]) => res.setHeader(k, v));
-      res.status(500).json({ error: "Server misconfigured: CONVEX_URL is not set" });
+      res.status(500).json({ error: "Server misconfigured: CONVEX_URL/CONVEX_HTTP_URL is not set" });
       return;
     }
 
-    const target = `${convexUrl.replace(/\/$/, "")}/getAgent?botId=${encodeURIComponent(botId)}`;
-    const resp = await fetch(target, { method: "GET", headers: { "Content-Type": "application/json" } });
+    const base = convexUrl.replace(/\/$/, "");
+    const tryUrls = [
+      `${base}/getAgent?botId=${encodeURIComponent(botId)}`,
+      `${base}/api/getAgent?botId=${encodeURIComponent(botId)}`
+    ];
 
-    const text = await resp.text();
+    let resp;
+    let lastText = "";
+    for (const url of tryUrls) {
+      resp = await fetch(url, { method: "GET", headers: { "Content-Type": "application/json" } });
+      lastText = await resp.text();
+      if (resp.ok) break;
+    }
+
     let data;
     try {
-      data = JSON.parse(text);
+      data = JSON.parse(lastText);
     } catch {
-      data = text;
+      data = lastText;
     }
 
     Object.entries(corsHeaders).forEach(([k, v]) => res.setHeader(k, v));
-    res.status(resp.status).send(typeof data === "string" ? data : JSON.stringify(data));
+    res.status(resp.status).json(typeof data === "string" ? { error: data } : data);
   } catch (e) {
     Object.entries(corsHeaders).forEach(([k, v]) => res.setHeader(k, v));
     res.status(500).json({ error: e && e.message ? e.message : "Unknown error" });
