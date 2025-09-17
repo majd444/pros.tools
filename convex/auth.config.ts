@@ -50,12 +50,12 @@ interface AuthConfig {
       clockTolerance: number; // seconds
     };
     // Map JWT claims to Convex user identity
-    user: (token: Record<string, any>) => {
+    user: (token: TokenClaims) => {
       id: string;
       name?: string;
       email?: string;
       picture?: string;
-      [key: string]: any;
+      [key: string]: unknown;
     };
   };
   webhooks: Array<{
@@ -63,6 +63,15 @@ interface AuthConfig {
     handler: (req: NextRequest) => Promise<Response>;
   }>;
 }
+
+type TokenClaims = {
+  sub?: string;
+  name?: string;
+  nickname?: string;
+  email?: string;
+  picture?: string;
+  [key: string]: unknown;
+};
 
 const authConfig: AuthConfig = {
   providers: [
@@ -87,11 +96,11 @@ const authConfig: AuthConfig = {
       clockTolerance: 10, // 10 seconds leeway for clock skew
     },
     // Map JWT claims to Convex user identity
-    user: (token) => ({
-      id: token.sub || '',
-      name: token.name || token.nickname || '',
-      email: token.email || '',
-      picture: token.picture || '',
+    user: (token: TokenClaims) => ({
+      id: token.sub ?? '',
+      name: (token.name as string | undefined) ?? (token.nickname as string | undefined) ?? '',
+      email: (token.email as string | undefined) ?? '',
+      picture: (token.picture as string | undefined) ?? '',
       // Include any additional claims you need
       ...token,
     })
@@ -208,9 +217,9 @@ const authConfig: AuthConfig = {
   ]
 };
 
-// Handler functions for Clerk webhook events
-async function handleUserCreated(userData: any) {
-  const { id, email_addresses, first_name, last_name } = userData;
+async function handleUserCreated(userData: unknown) {
+  const u = userData as { id?: string; email_addresses?: Array<{ email_address?: string }>; first_name?: string | null; last_name?: string | null };
+  const { id, email_addresses, first_name, last_name } = u;
   const email = email_addresses?.[0]?.email_address;
   
   console.log('New user created:', { 
@@ -230,8 +239,9 @@ async function handleUserCreated(userData: any) {
   // });
 }
 
-async function handleUserUpdated(userData: any) {
-  const { id, email_addresses, first_name, last_name } = userData;
+async function handleUserUpdated(userData: unknown) {
+  const u = userData as { id?: string; email_addresses?: Array<{ email_address?: string }>; first_name?: string | null; last_name?: string | null };
+  const { id, email_addresses, first_name, last_name } = u;
   const email = email_addresses?.[0]?.email_address;
   
   console.log('User updated:', { 
@@ -251,8 +261,9 @@ async function handleUserUpdated(userData: any) {
   //   .where(eq(users.id, id));
 }
 
-async function handleUserDeleted(userData: any) {
-  const { id } = userData;
+async function handleUserDeleted(userData: unknown) {
+  const u = userData as { id?: string };
+  const { id } = u;
   
   console.log('User deleted:', { userId: id });
   
@@ -266,8 +277,9 @@ async function handleUserDeleted(userData: any) {
   //   .where(eq(users.id, id));
 }
 
-async function handleSessionEvent(eventType: string, sessionData: any) {
-  const { id, user_id: userId, status } = sessionData;
+async function handleSessionEvent(eventType: string, sessionData: unknown) {
+  const s = sessionData as { id?: string; user_id?: string; status?: string };
+  const { id, user_id: userId, status } = s;
   
   console.log(`Session ${eventType}:`, { 
     sessionId: id, 

@@ -54,8 +54,9 @@
 
   async function fetchAgentConfig(botId) {
     // Use Convex HTTP action to create a session and return agent theme
-    if (!CONVEX_URL) throw new Error('Missing Convex URL');
-    const url = `${CONVEX_URL.replace(/\/$/, "")}/api/chat/widget/session`;
+    // If data-convex-url is not provided, fall back to calling the script's own origin proxy route
+    const base = (CONVEX_URL && CONVEX_URL.replace(/\/$/, "")) || SCRIPT_ORIGIN;
+    const url = `${base}/api/chat/widget/session`;
     log("fetchAgent:start", { url, agentId: botId });
     const res = await fetch(url, {
       method: "POST",
@@ -394,11 +395,10 @@
       addMessage("You", value);
       input.value = "";
 
-      const userInfo = getStoredUser();
-
       try {
         log("chat:send", { value });
-        const url = `${CONVEX_URL.replace(/\/$/, "")}/api/chat/widget/chat`;
+        const base = (CONVEX_URL && CONVEX_URL.replace(/\/$/, "")) || SCRIPT_ORIGIN;
+        const url = `${base}/api/chat/widget/chat`;
         const res = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-source": "widget" },
