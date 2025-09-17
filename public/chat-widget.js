@@ -145,19 +145,27 @@
       #chat-widget-header {
         background: ${agent.headerColor || "#2563eb"};
         color: white;
-        padding: 8px 10px;
-        font-size: 14px;
+        padding: 6px 8px;
+        font-size: 12px;
         font-weight: 700;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 6px;
+        gap: 4px;
       }
       #chat-widget-header .title {
-        display: flex; align-items: center; gap: 6px;
+        display: flex; align-items: center; gap: 4px;
+        max-width: 85%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       #chat-widget-header img {
-        width: 16px; height: 16px; border-radius: 50%; object-fit: cover;
+        width: 14px; height: 14px; border-radius: 50%; object-fit: cover;
+      }
+      #chat-widget-close {
+        font-size: 14px;
+        line-height: 1;
       }
       #chat-widget-body {
         display: flex;
