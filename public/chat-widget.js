@@ -145,19 +145,19 @@
       #chat-widget-header {
         background: ${agent.headerColor || "#2563eb"};
         color: white;
-        padding: 12px;
-        font-size: 16px;
+        padding: 8px 10px;
+        font-size: 14px;
         font-weight: 700;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 10px;
+        gap: 6px;
       }
       #chat-widget-header .title {
-        display: flex; align-items: center; gap: 8px;
+        display: flex; align-items: center; gap: 6px;
       }
       #chat-widget-header img {
-        width: 24px; height: 24px; border-radius: 50%; object-fit: cover;
+        width: 16px; height: 16px; border-radius: 50%; object-fit: cover;
       }
       #chat-widget-body {
         display: flex;
