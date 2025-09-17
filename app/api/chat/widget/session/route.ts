@@ -3,10 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 function getConvexHttpBase(): string {
   const httpUrl = process.env.CONVEX_HTTP_URL?.replace(/\/$/, "");
   // Allow non-standard var the user set in .env
-  const httpUrlAlt = (process.env as any).Convex_HTTP?.replace(/\/$/, "");
+  const env = process.env as Record<string, string | undefined>;
+  const httpUrlAlt = env.Convex_HTTP?.replace(/\/$/, "");
+  // Also support Convex_HTTP_Url to match user's .env
+  const httpUrlAlt2 = env.Convex_HTTP_Url?.replace(/\/$/, "");
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL?.replace(/\/$/, "");
-  const base = httpUrl || httpUrlAlt || convexUrl;
-  if (!base) throw new Error("Missing CONVEX_HTTP_URL (or Convex_HTTP) or NEXT_PUBLIC_CONVEX_URL env var");
+  const base = httpUrl || httpUrlAlt || httpUrlAlt2 || convexUrl;
+  if (!base) throw new Error("Missing CONVEX_HTTP_URL (or Convex_HTTP / Convex_HTTP_Url) or NEXT_PUBLIC_CONVEX_URL env var");
   return base;
 }
 
