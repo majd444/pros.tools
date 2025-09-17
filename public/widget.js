@@ -129,8 +129,10 @@
         position: fixed;
         bottom: 20px;
         right: 20px;
-        width: 480px;
-        height: 75vh; /* make much taller on desktop */
+        width: 420px;
+        height: auto;
+        min-height: 400px;
+        max-height: 600px;
         background: ${agent.backgroundColor || "#fff"};
         border-radius: 16px;
         box-shadow: 0 4px 20px rgba(0,0,0,0.15);
@@ -143,8 +145,8 @@
       #chat-widget-header {
         background: ${agent.headerColor || "#2563eb"};
         color: white;
-        padding: 18px;
-        font-size: 22px;
+        padding: 12px;
+        font-size: 16px;
         font-weight: 700;
         display: flex;
         align-items: center;
@@ -240,7 +242,7 @@
           right: 0;
           bottom: 0;
           width: 100vw;
-          height: 95vh; /* taller on small screens */
+          height: 80vh;
           max-height: none;
           border-radius: 16px 16px 0 0; /* top-rounded corners */
         }
