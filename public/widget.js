@@ -171,6 +171,29 @@
         line-height: 1.65;
         background: ${agent.backgroundColor || "#fff"};
       }
+      /* Bubble rows and bubbles */
+      .chat-row {
+        display: flex;
+        margin-bottom: 10px;
+      }
+      .chat-row.user { justify-content: flex-end; }
+      .chat-row.bot { justify-content: flex-start; }
+      .bubble {
+        max-width: 80%;
+        padding: 10px 14px;
+        border-radius: 16px;
+        color: #fff;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+      }
+      .bubble.user {
+        background: #3b82f6; /* blue-500 */
+        border-bottom-right-radius: 4px;
+      }
+      .bubble.bot {
+        background: #10b981; /* emerald-500 */
+        border-bottom-left-radius: 4px;
+      }
       #chat-widget-input {
         display: flex;
         border-top: 1px solid #e5e7eb;
@@ -422,7 +445,6 @@
     const body = container.querySelector("#chat-widget-body");
     body.innerHTML = `
       <div id="chat-widget-messages">
-        <div><b>Bot:</b> ${agent.welcomeMessage || "👋 Hi! How can I help you today?"}</div>
       </div>
       <div id="chat-widget-input">
         <input type="text" placeholder="Type your message..." />
@@ -435,17 +457,24 @@
     const sendBtn = body.querySelector("button");
     log("ui:chat:rendered");
 
-    function addMessage(sender, text) {
-      const div = document.createElement("div");
-      div.innerHTML = `<b>${sender}:</b> ${text}`;
-      messages.appendChild(div);
+    function addMessage(kind, text) {
+      const row = document.createElement("div");
+      row.className = `chat-row ${kind === 'user' ? 'user' : 'bot'}`;
+      const bubble = document.createElement("div");
+      bubble.className = `bubble ${kind === 'user' ? 'user' : 'bot'}`;
+      bubble.textContent = text;
+      row.appendChild(bubble);
+      messages.appendChild(row);
       messages.scrollTop = messages.scrollHeight;
     }
+
+    // Initial bot welcome
+    addMessage('bot', agent.welcomeMessage || "👋 Hi! How can I help you today?");
 
     sendBtn.addEventListener("click", async () => {
       const value = input.value.trim();
       if (!value) return;
-      addMessage("You", value);
+      addMessage("user", value);
       input.value = "";
 
       try {
@@ -464,10 +493,10 @@
         const txt = await res.text();
         log("chat:reply", { status: res.status, body: txt?.slice(0, 200) });
         const data = (() => { try { return JSON.parse(txt); } catch { return {}; } })();
-        addMessage("Bot", data.reply || "Sorry, I didn’t understand that.");
+        addMessage("bot", data.reply || "Sorry, I didn’t understand that.");
       } catch (err) {
         if (DEBUG) console.error("[Chat Widget] chat request failed:", err);
-        addMessage("Bot", "⚠️ Error contacting server");
+        addMessage("bot", "⚠️ Error contacting server");
       }
     });
 

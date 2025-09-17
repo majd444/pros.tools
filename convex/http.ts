@@ -3,6 +3,7 @@ import { httpAction } from "./_generated/server";
 import { api } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import nacl from "tweetnacl";
+import { createWidgetSession, widgetChat } from "./chatWidget";
 
 function corsResponse(json: unknown, status = 200) {
   return new Response(JSON.stringify(json), {
@@ -674,6 +675,17 @@ const llmHealth = httpAction(async () => {
 });
 http.route({ path: '/api/llm/health', method: 'GET', handler: llmHealth });
 http.route({ path: '/api/llm/health', method: 'OPTIONS', handler: options });
+
+// Widget chat endpoints (proxy-free access on convex.site)
+http.route({ path: '/api/chat/widget/session', method: 'POST', handler: createWidgetSession });
+http.route({ path: '/api/chat/widget/session', method: 'OPTIONS', handler: options });
+http.route({ path: '/chat/widget/session', method: 'POST', handler: createWidgetSession });
+http.route({ path: '/chat/widget/session', method: 'OPTIONS', handler: options });
+
+http.route({ path: '/api/chat/widget/chat', method: 'POST', handler: widgetChat });
+http.route({ path: '/api/chat/widget/chat', method: 'OPTIONS', handler: options });
+http.route({ path: '/chat/widget/chat', method: 'POST', handler: widgetChat });
+http.route({ path: '/chat/widget/chat', method: 'OPTIONS', handler: options });
 http.route({ path: '/api/telegram/webhook', method: 'POST', handler: telegramWebhook });
 http.route({ path: '/api/telegram/webhook', method: 'OPTIONS', handler: options });
 http.route({ path: '/telegram/webhook', method: 'POST', handler: telegramWebhook });
