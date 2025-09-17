@@ -59,6 +59,31 @@ export function ConvexClientProvider({ children }: { children: ReactNode }) {
     return client;
   }, []);
 
+  // One-time diagnostic: print Clerk JWT iss/aud to verify it matches Convex auth config
+  // This helps resolve "No auth provider found" issues by confirming issuer/audience.
+  const { getToken } = useAuth();
+  useEffect(() => {
+    let ran = false;
+    if (typeof window === 'undefined') return;
+    if (ran) return;
+    ran = true;
+    (async () => {
+      try {
+        const jwt = await getToken?.({ template: 'convex' });
+        if (!jwt) {
+          console.warn('🪪 [Clerk JWT] No token returned for template "convex"');
+          return;
+        }
+        const payloadPart = jwt.split('.')[1];
+        const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+        const decoded = JSON.parse(atob(normalized));
+        console.log('🪪 [Clerk JWT] iss:', decoded.iss, 'aud:', decoded.aud);
+      } catch (e) {
+        console.error('🪪 [Clerk JWT] Failed to get/parse token:', e);
+      }
+    })();
+  }, [getToken]);
+
   const [authStatus, setAuthStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
 
   // Test the connection when the client is ready

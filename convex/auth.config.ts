@@ -23,7 +23,7 @@ if (!clerkPublishableKey) {
 }
 
 // Use the exact domain from your Clerk JWT token
-const clerkDomain = 'https://meet-quetzal-92.clerk.accounts.dev';
+const clerkDomain = 'https://direct-thrush-68.clerk.accounts.dev';
 
 // JWT configuration
 // Must match the audience in your Clerk JWT template
