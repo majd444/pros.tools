@@ -3,7 +3,12 @@
   let currentScript = document.currentScript;
   if (!currentScript) {
     const scripts = Array.from(document.getElementsByTagName('script'));
-    currentScript = scripts.reverse().find(s => (s.getAttribute('src') || '').includes('widget.js')) || null;
+    currentScript = scripts
+      .reverse()
+      .find(s => {
+        const src = s.getAttribute('src') || '';
+        return src.includes('chat-widget.js') || src.includes('widget.js');
+      }) || null;
   }
   if (!currentScript) return;
 
@@ -19,14 +24,64 @@
   const log = (...args) => { if (DEBUG) console.log("[Chat Widget]", ...args); };
 
   // Optional: allow configuring URLs from the script tag for easy deploys
-  // Example:
-  // <script src="/widget.js"
-  //         data-bot-id="USER1234"
-  //         data-convex-url="https://your-convex.convex.cloud"
-  //         data-backend-url="https://your-backend.com/api/chat"></script>
+  // Attributes:
+  // - data-convex-url: direct Convex HTTP Actions base (e.g., https://my-123.convex.cloud)
+  // - data-backend-url: explicit Next.js proxy base for widget (e.g., https://site.vercel.app/api/chat/widget)
   const CONVEX_URL = currentScript.getAttribute("data-convex-url") || "";
+  const BACKEND_URL = currentScript.getAttribute("data-backend-url") || "";
   const SCRIPT_ORIGIN = (() => { try { return new URL(currentScript.src).origin; } catch { return ""; } })();
-  log("boot", { botId, scriptSrc: currentScript.src, scriptOrigin: SCRIPT_ORIGIN, hasConvexUrl: !!CONVEX_URL });
+
+  function sanitizeBase(u) { return (u || "").replace(/\/$/, ""); }
+  function looksLikeConvex(u) { return /\.convex\.(cloud|site)/.test(u || ""); }
+
+  // Resolve endpoints in this order:
+  // 1) data-backend-url (explicit proxy base e.g., https://host/api/chat/widget)
+  // 2) script origin proxy (https://host/api/chat/widget)
+  // 3) convex direct (https://<deployment>.convex.cloud/api/chat/widget)
+  function resolveEndpoints() {
+    const be = sanitizeBase(BACKEND_URL);
+    if (be) {
+      return {
+        base: be,
+        session: `${be}/session`,
+        chat: `${be}/chat`,
+        via: 'backend-url',
+      };
+    }
+
+    const origin = sanitizeBase(SCRIPT_ORIGIN);
+    if (origin) {
+      const base = `${origin}/api/chat/widget`;
+      return {
+        base,
+        session: `${base}/session`,
+        chat: `${base}/chat`,
+        via: 'script-origin-proxy',
+      };
+    }
+
+    const convex = sanitizeBase(CONVEX_URL);
+    if (convex && looksLikeConvex(convex)) {
+      const base = `${convex}/api/chat/widget`;
+      return {
+        base,
+        session: `${base}/session`,
+        chat: `${base}/chat`,
+        via: 'convex-direct',
+      };
+    }
+
+    // Last resort: try whatever convex was provided even if it doesn't match pattern
+    if (CONVEX_URL) {
+      const base = `${sanitizeBase(CONVEX_URL)}/api/chat/widget`;
+      return { base, session: `${base}/session`, chat: `${base}/chat`, via: 'convex-direct-raw' };
+    }
+
+    return { base: '', session: '', chat: '', via: 'unresolved' };
+  }
+
+  const ENDPOINTS = resolveEndpoints();
+  log("boot", { botId, scriptSrc: currentScript.src, scriptOrigin: SCRIPT_ORIGIN, hasConvexUrl: !!CONVEX_URL, hasBackendUrl: !!BACKEND_URL, endpoints: ENDPOINTS });
   // Optional: enforce required fields in pre-chat form (default: false)
   const ENFORCE_REQUIRED = currentScript.getAttribute("data-enforce-required") === "true";
   // Optional: enable showing the pre-chat form (default: false)
@@ -53,11 +108,9 @@
   }
 
   async function fetchAgentConfig(botId) {
-    // Use Convex HTTP action to create a session and return agent theme
-    // If data-convex-url is not provided, fall back to calling the script's own origin proxy route
-    const base = (CONVEX_URL && CONVEX_URL.replace(/\/$/, "")) || SCRIPT_ORIGIN;
-    const url = `${base}/api/chat/widget/session`;
-    log("fetchAgent:start", { url, agentId: botId });
+    // Create session and return agent theme via resolved endpoint
+    const url = ENDPOINTS.session;
+    log("fetchAgent:start", { url, via: ENDPOINTS.via, agentId: botId });
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -396,9 +449,8 @@
       input.value = "";
 
       try {
-        log("chat:send", { value });
-        const base = (CONVEX_URL && CONVEX_URL.replace(/\/$/, "")) || SCRIPT_ORIGIN;
-        const url = `${base}/api/chat/widget/chat`;
+        log("chat:send", { value, url: ENDPOINTS.chat, via: ENDPOINTS.via });
+        const url = ENDPOINTS.chat;
         const res = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-source": "widget" },
