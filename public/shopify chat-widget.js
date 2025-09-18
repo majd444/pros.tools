@@ -97,16 +97,16 @@
        #shopify-chat-widget-header {
          background: ${agent.headerColor || '#2563eb'};
          color: #fff;
-         padding: 4px 6px;
-         font-size: 11px;
+         padding: 6px 10px;
+         font-size: 14px;
          font-weight: 700;
          display: flex;
          align-items: center;
          justify-content: space-between;
-         gap: 3px;
+         gap: 4px;
        }
-       #shopify-chat-widget-header .title { display: flex; align-items: center; gap: 4px; max-width: 82%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-       #shopify-chat-widget-header img { width: 12px; height: 12px; border-radius: 50%; object-fit: cover; }
+       #shopify-chat-widget-header .title { display: flex; align-items: center; gap: 6px; max-width: 85%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+       #shopify-chat-widget-header img { width: 14px; height: 14px; border-radius: 50%; object-fit: cover; }
        #shopify-chat-widget-close { font-size: 12px; line-height: 1; cursor: pointer; }
 
        #shopify-chat-widget-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
