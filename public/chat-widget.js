@@ -30,6 +30,11 @@
   const CONVEX_URL = currentScript.getAttribute("data-convex-url") || "";
   const BACKEND_URL = currentScript.getAttribute("data-backend-url") || "";
   const SCRIPT_ORIGIN = (() => { try { return new URL(currentScript.src).origin; } catch { return ""; } })();
+  // Shopify detection and explicit opt-in
+  const PLATFORM_ATTR = (currentScript.getAttribute("data-platform") || "").toLowerCase();
+  const IS_SHOPIFY = PLATFORM_ATTR === "shopify"
+    || /myshopify\.com$/i.test(location.hostname)
+    || typeof (window && (window /** @type {any} */).Shopify) !== "undefined";
 
   function sanitizeBase(u) { return (u || "").replace(/\/$/, ""); }
   function looksLikeConvex(u) { return /\.convex\.(cloud|site)/.test(u || ""); }
@@ -142,6 +147,12 @@
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
         z-index: 999999;
       }
+      /* Shopify-specific slim variant */
+      #chat-widget-container.shopify {
+        width: 400px;
+        min-height: 320px;
+        max-height: 520px;
+      }
       #chat-widget-header {
         background: ${agent.headerColor || "#2563eb"};
         color: white;
@@ -153,6 +164,12 @@
         justify-content: space-between;
         gap: 4px;
       }
+      /* Slimmer header on Shopify */
+      #chat-widget-container.shopify #chat-widget-header {
+        padding: 4px 6px;
+        font-size: 11px;
+        gap: 3px;
+      }
       #chat-widget-header .title {
         display: flex; align-items: center; gap: 4px;
         max-width: 85%;
@@ -160,12 +177,21 @@
         text-overflow: ellipsis;
         white-space: nowrap;
       }
+      #chat-widget-container.shopify #chat-widget-header .title {
+        max-width: 82%;
+      }
       #chat-widget-header img {
         width: 14px; height: 14px; border-radius: 50%; object-fit: cover;
+      }
+      #chat-widget-container.shopify #chat-widget-header img {
+        width: 12px; height: 12px;
       }
       #chat-widget-close {
         font-size: 14px;
         line-height: 1;
+      }
+      #chat-widget-container.shopify #chat-widget-close {
+        font-size: 12px;
       }
       #chat-widget-body {
         display: flex;
@@ -180,6 +206,10 @@
         font-size: 19px;
         line-height: 1.65;
         background: ${agent.backgroundColor || "#fff"};
+      }
+      #chat-widget-container.shopify #chat-widget-messages {
+        padding: 14px;
+        font-size: 18px;
       }
       /* Bubble rows and bubbles */
       .chat-row {
@@ -225,6 +255,14 @@
         font-weight: 700;
         font-size: 19px;
       }
+      #chat-widget-container.shopify #chat-widget-input input {
+        padding: 14px 14px;
+        font-size: 16px;
+      }
+      #chat-widget-container.shopify #chat-widget-input button {
+        padding: 12px 18px;
+        font-size: 16px;
+      }
       #chat-widget-toggle {
         position: fixed;
         bottom: 20px;
@@ -242,6 +280,11 @@
         font-size: 28px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.2);
       }
+      #chat-widget-toggle.shopify {
+        width: 52px;
+        height: 52px;
+        font-size: 24px;
+      }
       
       /* Mobile responsive adjustments */
       @media (max-width: 640px) {
@@ -254,11 +297,20 @@
           max-height: none;
           border-radius: 16px 16px 0 0; /* top-rounded corners */
         }
+        #chat-widget-container.shopify {
+          height: 70vh;
+        }
         #chat-widget-toggle {
           width: 60px;
           height: 60px;
           bottom: 20px;
           right: 20px;
+        }
+        #chat-widget-toggle.shopify {
+          width: 52px;
+          height: 52px;
+          bottom: 18px;
+          right: 18px;
         }
       }
       /* Form styles */
@@ -314,6 +366,7 @@
     const toggle = document.createElement("div");
     toggle.id = "chat-widget-toggle";
     toggle.textContent = "💬";
+    if (IS_SHOPIFY) toggle.classList.add("shopify");
     document.body.appendChild(toggle);
     log("ui:toggle:mounted");
     return toggle;
@@ -323,6 +376,7 @@
     const container = document.createElement("div");
     container.id = "chat-widget-container";
     container.style.display = "none";
+    if (IS_SHOPIFY) container.classList.add("shopify");
     container.innerHTML = `
       <div id="chat-widget-header">
         <div class="title">
