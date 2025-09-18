@@ -93,17 +93,18 @@
       #shopify-chat-widget-header {
         background: ${agent.headerColor || '#2563eb'};
         color: #fff;
-        padding: 4px 6px;
-        font-size: 11px;
+        padding: 2px 6px; /* slimmest */
+        font-size: 9.5px; /* slimmest but readable */
         font-weight: 700;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 3px;
+        line-height: 1.05;
       }
-      #shopify-chat-widget-header .title { display: flex; align-items: center; gap: 4px; max-width: 82%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      #shopify-chat-widget-header img { width: 12px; height: 12px; border-radius: 50%; object-fit: cover; }
-      #shopify-chat-widget-close { font-size: 12px; line-height: 1; cursor: pointer; }
+      #shopify-chat-widget-header .title { display: flex; align-items: center; gap: 2px; max-width: 78%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #shopify-chat-widget-header img { width: 10px; height: 10px; border-radius: 50%; object-fit: cover; }
+      #shopify-chat-widget-close { font-size: 11px; line-height: 1; cursor: pointer; }
 
       #shopify-chat-widget-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
       #shopify-chat-widget-messages { flex: 1; padding: 14px; overflow-y: auto; font-size: 18px; line-height: 1.6; background: ${agent.backgroundColor || '#fff'}; }
