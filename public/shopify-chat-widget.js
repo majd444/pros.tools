@@ -101,8 +101,8 @@
   justify-content: space-between;
   gap: 6px;
   line-height: 1.4;
-  height: 46px;      /* taller header */
-  min-height: 46px;
+  height: 70px;      /* taller header */
+  min-height: 70px;
 }
 #shopify-chat-widget-header img {
   width: 20px;
