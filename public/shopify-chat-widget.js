@@ -93,28 +93,47 @@
       #shopify-chat-widget-header {
   background: ${agent.headerColor || '#2563eb'};
   color: #fff;
-  padding: 8px 12px; /* more breathing room */
-  font-size: 14px;   /* more readable */
+  padding: 12px 16px;
+  font-size: 18px;      /* Bigger text */
   font-weight: 600;
   display: flex;
-  align-items: center;
+  align-items: center;  /* Align vertically */
   justify-content: space-between;
-  gap: 6px;
+  gap: 10px;
   line-height: 1.4;
-  height: 70px;      /* taller header */
-  min-height: 70px;
+  height: 60px;         /* Taller bar */
+  min-height: 60px;
 }
+
+#shopify-chat-widget-header .title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#shopify-chat-widget-header .title span {
+  font-size: 18px;      /* Bigger name */
+  font-weight: 700;
+}
+
 #shopify-chat-widget-header img {
-  width: 20px;
-  height: 20px;
+  width: 28px;          /* Bigger avatar */
+  height: 28px;
   border-radius: 50%;
   object-fit: cover;
 }
+
 #shopify-chat-widget-close {
-  font-size: 14px;
+  font-size: 20px;      /* Bigger close button */
+  font-weight: bold;
   line-height: 1;
   cursor: pointer;
+  padding-left: 10px;
 }
+
 ;
       }
       #shopify-chat-widget-header .title { display: flex; align-items: center; gap: 2px; max-width: 78%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
