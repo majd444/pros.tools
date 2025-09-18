@@ -79,7 +79,7 @@
         right: 18px;
         width: 400px;
         height: auto;
-        min-height: 320px;
+        min-height: 400px;
         max-height: 520px;
         background: ${agent.backgroundColor || '#fff'};
         border-radius: 14px;
