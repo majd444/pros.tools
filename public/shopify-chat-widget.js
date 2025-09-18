@@ -127,7 +127,7 @@
 }
 
 #shopify-chat-widget-close {
-  font-size: 20px;      /* Bigger close button */
+  font-size: 26px;      /* Bigger close button */
   font-weight: bold;
   line-height: 1;
   cursor: pointer;
