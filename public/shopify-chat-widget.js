@@ -177,7 +177,7 @@
       #shopify-chat-prechat label .req { color: #ef4444; margin-left: 2px; }
       #shopify-chat-prechat input { border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px 14px; font-size: 14px; }
       #shopify-chat-prechat .error { color: #dc2626; font-size: 12px; margin-bottom: 8px; }
-      #shopify-chat-prechat .actions { display: flex; justify-content: flex-end; margin-top: auto; padding-top: 8px; padding-bottom: 0; position: sticky; bottom: 0; background: #fff; }
+      #shopify-chat-prechat .actions { display: flex; justify-content: flex-end; margin-top: auto; padding: 12px 0 0; background: #fff; position: relative; }
       #shopify-chat-prechat button { background: #00D4FF; color: #fff; border: none; padding: 12px 16px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 16px; width: 100%; margin-bottom: 0; }
 
       @media (max-width: 640px) {
