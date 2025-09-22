@@ -97,17 +97,17 @@
         z-index: 999999;
       }
       #shopify-chat-widget-header {
-  background: ${agent.headerColor || '#2563eb'};
+  background: ${agent.headerColor || '#3B82F6'};
   color: #fff;
   padding: 12px 16px;
-  font-size: 18px;      /* Bigger text */
+  font-size: 18px;
   font-weight: 600;
   display: flex;
-  align-items: center;  /* Align vertically */
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
   line-height: 1.4;
-  height: 60px;         /* Taller bar */
+  height: 60px;
   min-height: 60px;
 }
 
@@ -148,14 +148,15 @@
       #shopify-chat-widget-close { font-size: 20px; line-height: 3; cursor: pointer; }
 
       #shopify-chat-widget-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-      #shopify-chat-widget-messages { flex: 1; padding: 14px; overflow-y: auto; font-size: 18px; line-height: 1.6; background: ${agent.backgroundColor || '#fff'}; }
+      #shopify-chat-widget-messages { flex: 1; padding: 14px; overflow-y: auto; font-size: 16px; line-height: 1.6; background: ${agent.backgroundColor || '#fff'}; }
 
       .shopify-chat-row { display: flex; margin-bottom: 10px; }
       .shopify-chat-row.user { justify-content: flex-end; }
       .shopify-chat-row.bot { justify-content: flex-start; }
-      .shopify-bubble { max-width: 80%; padding: 9px 12px; border-radius: 14px; color: #fff; word-wrap: break-word; white-space: pre-wrap; }
-      .shopify-bubble.user { background: #3b82f6; border-bottom-right-radius: 4px; }
-      .shopify-bubble.bot { background: #10b981; border-bottom-left-radius: 4px; }
+      .shopify-bubble { max-width: 85%; padding: 10px 14px; border-radius: 14px; word-wrap: break-word; white-space: pre-wrap; }
+      .shopify-bubble.user { background: #3b82f6; color: #fff; border-bottom-right-radius: 6px; }
+      .shopify-bubble.bot { background: #f3f4f6; color: #111827; border-bottom-left-radius: 6px; }
+      .shopify-time { margin-top: 6px; font-size: 12px; color: #6b7280; }
 
       #shopify-chat-widget-input { display: flex; border-top: 1px solid #e5e7eb; background: #fff; }
       #shopify-chat-widget-input input { flex: 1; padding: 14px 14px; border: none; outline: none; font-size: 16px; }
@@ -164,13 +165,14 @@
       #shopify-chat-widget-toggle { position: fixed; bottom: 18px; right: 18px; background: ${agent.accentColor || '#2563eb'}; color: #fff; border-radius: 50%; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 999998; font-size: 24px; box-shadow: 0 4px 14px rgba(0,0,0,0.18); }
 
       /* Pre-chat form styles */
-      #shopify-chat-prechat { padding: 14px; display: flex; flex-direction: column; gap: 10px; background: ${agent.backgroundColor || '#fff'}; }
-      #shopify-chat-prechat .row { display: flex; flex-direction: column; gap: 6px; }
-      #shopify-chat-prechat label { font-size: 12px; color: #111827; }
-      #shopify-chat-prechat input { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; font-size: 14px; }
-      #shopify-chat-prechat .error { color: #dc2626; font-size: 12px; }
-      #shopify-chat-prechat .actions { display: flex; justify-content: flex-end; margin-top: 6px; }
-      #shopify-chat-prechat button { background: ${agent.accentColor || '#2563eb'}; color: #fff; border: none; padding: 10px 14px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 14px; }
+      #shopify-chat-prechat { padding: 14px; background: #fff; border-top: 1px solid #f1f5f9; }
+      #shopify-chat-prechat .row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+      #shopify-chat-prechat label { font-size: 14px; color: #111827; }
+      #shopify-chat-prechat label .req { color: #ef4444; margin-left: 2px; }
+      #shopify-chat-prechat input { border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px 14px; font-size: 14px; }
+      #shopify-chat-prechat .error { color: #dc2626; font-size: 12px; margin-bottom: 8px; }
+      #shopify-chat-prechat .actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+      #shopify-chat-prechat button { background: #00D4FF; color: #fff; border: none; padding: 12px 16px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 16px; width: 100%; }
 
       @media (max-width: 640px) {
         #shopify-chat-widget-container { left: 0; right: 0; bottom: 0; width: 100vw; height: 70vh; max-height: none; border-radius: 16px 16px 0 0; }
@@ -334,6 +336,15 @@
         if (flags.collectPhone) add('phone', labelFrom('phone', 'Phone number'), 'tel');
         if (flags.collectCustom) add('custom', labelFrom('custom', 'Custom'));
       }
+      // If still empty and FORCE_PRECHAT is set, show default templates to unblock testing
+      if (out.length === 0 && FORCE_PRECHAT) {
+        return [
+          { key: 'name', label: 'Name', type: 'text', required: true },
+          { key: 'email', label: 'Email', type: 'email', required: true },
+          { key: 'phone', label: 'Phone Number', type: 'tel', required: false },
+          { key: 'custom', label: 'Custom', type: 'text', required: false },
+        ];
+      }
       return out;
     }
 
@@ -347,8 +358,9 @@
     const closeBtn = container.querySelector('#shopify-chat-widget-close');
     function showPrechatOrChat(){
       const existing = getStoredUser();
-      const needsForm = FORCE_PRECHAT || (Array.isArray(fields) && fields.length > 0 && (!existing || fields.some(f => !(existing && existing[f.key]))));
-      log('prechat:decision', { FORCE_PRECHAT, existing, needsForm, fields });
+      // Always show pre-chat when agent.collectUserInfo is true
+      const needsForm = agent.collectUserInfo ? true : (FORCE_PRECHAT || (Array.isArray(fields) && fields.length > 0 && (!existing || fields.some(f => !(existing && existing[f.key])))));
+      log('prechat:decision', { FORCE_PRECHAT, existing, needsForm, fields, collectUserInfo: agent.collectUserInfo });
       if (needsForm) {
         const body = container.querySelector('#shopify-chat-widget-body');
         body.innerHTML = `
@@ -432,9 +444,10 @@
 
     // Auto-open the widget to show pre-chat in FORCE_PRECHAT or when required fields are configured and missing
     const existingAuto = getStoredUser();
-    const requiresFormAuto = FORCE_PRECHAT || (Array.isArray(fields) && fields.length > 0 && (!existingAuto || fields.some(f => f.required && !(existingAuto && existingAuto[f.key]))));
+    // Auto-open when collectUserInfo is true, or when FORCE_PRECHAT or required fields missing
+    const requiresFormAuto = agent.collectUserInfo || FORCE_PRECHAT || (Array.isArray(fields) && fields.length > 0 && (!existingAuto || fields.some(f => f.required && !(existingAuto && existingAuto[f.key]))));
     if (requiresFormAuto) {
-      log('prechat:autoOpen', { requiresFormAuto, FORCE_PRECHAT, existingAuto, fields });
+      log('prechat:autoOpen', { requiresFormAuto, FORCE_PRECHAT, existingAuto, fields, collectUserInfo: agent.collectUserInfo });
       container.style.display = 'flex';
       toggle.style.display = 'none';
       showPrechatOrChat();
