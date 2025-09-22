@@ -29,6 +29,12 @@
    // Endpoint resolution
    const CONVEX_URL = currentScript.getAttribute('data-convex-url') || '';
    const BACKEND_URL = currentScript.getAttribute('data-backend-url') || '';
+   const COLLECT_FILTER = new Set(
+     (currentScript.getAttribute('data-collect-fields') || '')
+       .split(',')
+       .map(s => s.trim().toLowerCase())
+       .filter(Boolean)
+   );
    const FORCE_PRECHAT = (currentScript.getAttribute('data-force-prechat') || '').toLowerCase() === 'true';
    const SCRIPT_ORIGIN = (() => { try { return new URL(currentScript.src).origin; } catch { return ''; } })();
 
@@ -271,12 +277,30 @@
     // Determine which user fields to collect, based on config shapes
     function deriveFields(initObj, agentObj){
       const out = [];
+      const wantsFilter = COLLECT_FILTER.size > 0;
+      const canonicalKind = (field) => {
+        const k = String(field.key || '').toLowerCase();
+        const lbl = String(field.label || '').toLowerCase();
+        const t = String(field.type || '').toLowerCase();
+        if (k === 'name' || /\bname\b/.test(lbl)) return 'name';
+        if (k === 'email' || t === 'email' || /email/.test(lbl)) return 'email';
+        if (k === 'phone' || t === 'tel' || /phone|tel/.test(lbl)) return 'phone';
+        if (k === 'custom') return 'custom';
+        return null;
+      };
       // New shape (Convex): collectUserInfo + formFields
       if (agentObj?.collectUserInfo && Array.isArray(agentObj?.formFields) && agentObj.formFields.length > 0) {
         agentObj.formFields.forEach(f => {
           if (!f || !f.id) return;
           out.push({ key: String(f.id), label: String(f.label || f.id), type: (f.type || 'text').toLowerCase(), required: !!f.required });
         });
+        // Apply optional filter
+        if (wantsFilter) {
+          return out.filter(f => {
+            const kind = canonicalKind(f);
+            return kind ? COLLECT_FILTER.has(kind) : false;
+          });
+        }
         return out;
       }
       // Legacy shapes for compatibility
@@ -298,6 +322,13 @@
         if (flags.collectEmail) add('email', labelFrom('email', 'Email'), 'email');
         if (flags.collectPhone) add('phone', labelFrom('phone', 'Phone number'), 'tel');
         if (flags.collectCustom) add('custom', labelFrom('custom', 'Custom'));
+      }
+      // Apply optional filter
+      if (wantsFilter) {
+        return out.filter(f => {
+          const kind = canonicalKind(f);
+          return kind ? COLLECT_FILTER.has(kind) : false;
+        });
       }
       return out;
     }
