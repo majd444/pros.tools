@@ -207,11 +207,26 @@
     async function send(value){
       try {
         log('chat:send', { value, url: ENDPOINTS.chat, via: ENDPOINTS.via });
-        const userInfo = getStoredUser() || undefined;
+        const stored = getStoredUser() || undefined;
+        // Build userFields (id->value) if keys look like field ids, and a best-effort normalized user
+        let userFields, userInfo;
+        if (stored && typeof stored === 'object') {
+          userFields = stored;
+          // Best-effort normalized fields based on common keys/labels
+          userInfo = {
+            name: stored.name || stored["field-name"] || stored["name"] || undefined,
+            email: stored.email || stored["field-email"] || stored["email"] || undefined,
+            phone: stored.phone || stored["field-phone"] || stored["phone"] || undefined,
+            custom: stored.custom || undefined,
+          };
+          // Remove undefineds
+          Object.keys(userInfo).forEach(k => userInfo[k] === undefined && delete userInfo[k]);
+          if (Object.keys(userInfo).length === 0) userInfo = undefined;
+        }
         const res = await fetch(ENDPOINTS.chat, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-source': 'shopify-widget' },
-          body: JSON.stringify({ sessionId, agentId: botId, message: value, history: [], user: userInfo }),
+          body: JSON.stringify({ sessionId, agentId: botId, message: value, history: [], user: userInfo, userFields }),
         });
         const txt = await res.text();
         log('chat:reply', { status: res.status, body: txt?.slice(0,200) });
@@ -251,26 +266,35 @@
     const agent = init.agent;
     const sessionId = init.sessionId;
 
-    // Determine which user fields to collect, based on multiple possible config shapes
+    // Determine which user fields to collect, based on config shapes
     function deriveFields(initObj, agentObj){
       const out = [];
+      // New shape (Convex): collectUserInfo + formFields
+      if (agentObj?.collectUserInfo && Array.isArray(agentObj?.formFields) && agentObj.formFields.length > 0) {
+        agentObj.formFields.forEach(f => {
+          if (!f || !f.id) return;
+          out.push({ key: String(f.id), label: String(f.label || f.id), type: (f.type || 'text').toLowerCase(), required: !!f.required });
+        });
+        return out;
+      }
+      // Legacy shapes for compatibility
       const cfgArray = initObj?.collectUserFields || agentObj?.collectUserFields || agentObj?.userFields || initObj?.userFields;
       const flags = agentObj || {};
-      const add = (key, label) => out.push({ key, label });
+      const add = (key, label, type) => out.push({ key, label, type: type || (key === 'email' ? 'email' : key === 'phone' ? 'tel' : 'text'), required: false });
       const labelFrom = (k, fallback) => {
         return initObj?.labels?.[k] || agentObj?.labels?.[k] || agentObj?.[`${k}Label`] || initObj?.[`${k}Label`] || fallback;
       };
       if (Array.isArray(cfgArray)) {
         cfgArray.forEach(k => {
           if (k === 'name') add('name', labelFrom('name', 'Name'));
-          if (k === 'email') add('email', labelFrom('email', 'Email'));
-          if (k === 'phone') add('phone', labelFrom('phone', 'Phone number'));
+          if (k === 'email') add('email', labelFrom('email', 'Email'), 'email');
+          if (k === 'phone') add('phone', labelFrom('phone', 'Phone number'), 'tel');
           if (k === 'custom') add('custom', labelFrom('custom', 'Custom'));
         });
       } else {
         if (flags.collectName) add('name', labelFrom('name', 'Name'));
-        if (flags.collectEmail) add('email', labelFrom('email', 'Email'));
-        if (flags.collectPhone) add('phone', labelFrom('phone', 'Phone number'));
+        if (flags.collectEmail) add('email', labelFrom('email', 'Email'), 'email');
+        if (flags.collectPhone) add('phone', labelFrom('phone', 'Phone number'), 'tel');
         if (flags.collectCustom) add('custom', labelFrom('custom', 'Custom'));
       }
       return out;
@@ -303,9 +327,10 @@
           const row = document.createElement('div');
           row.className = 'row';
           const label = document.createElement('label');
-          label.textContent = f.label || f.key;
+          label.textContent = (f.label || f.key) + (f.required ? ' *' : '');
           const input = document.createElement('input');
-          input.type = f.key === 'email' ? 'email' : (f.key === 'phone' ? 'tel' : 'text');
+          const itype = (f.type || '').toLowerCase();
+          input.type = itype === 'email' ? 'email' : (itype === 'tel' || itype === 'phone' ? 'tel' : 'text');
           input.placeholder = f.label || f.key;
           if (existing && existing[f.key]) input.value = existing[f.key];
           inputs[f.key] = input;
@@ -327,12 +352,16 @@
           const collected = {};
           for (const f of fields) {
             const v = (inputs[f.key]?.value || '').trim();
-            if (f.key === 'email' && v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+            if ((f.type === 'email' || /email/i.test(f.label || '')) && v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
               errorEl.textContent = 'Please enter a valid email address.';
               return;
             }
-            if (f.key === 'phone' && v && v.replace(/\D/g, '').length < 7) {
+            if ((f.type === 'tel' || /phone|tel/i.test(f.label || '')) && v && v.replace(/\D/g, '').length < 7) {
               errorEl.textContent = 'Please enter a valid phone number.';
+              return;
+            }
+            if (f.required && !v) {
+              errorEl.textContent = `${f.label || f.key} is required.`;
               return;
             }
             if (v) collected[f.key] = v;
