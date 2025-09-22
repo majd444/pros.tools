@@ -29,6 +29,7 @@
    // Endpoint resolution
    const CONVEX_URL = currentScript.getAttribute('data-convex-url') || '';
    const BACKEND_URL = currentScript.getAttribute('data-backend-url') || '';
+   const FORCE_PRECHAT = (currentScript.getAttribute('data-force-prechat') || '').toLowerCase() === 'true';
    const SCRIPT_ORIGIN = (() => { try { return new URL(currentScript.src).origin; } catch { return ''; } })();
 
    function sanitizeBase(u){ return (u || '').replace(/\/$/, ''); }
@@ -256,6 +257,7 @@
     document.body.appendChild(loadingToggle);
 
     const init = await fetchAgentConfig(botId);
+    log('init:payload', init);
     if (!init || !init.agent || !init.sessionId) {
       loadingToggle.textContent = '⚠️';
       loadingToggle.title = 'Failed to load chat widget';
@@ -301,6 +303,7 @@
     }
 
     const fields = deriveFields(init, agent);
+    log('prechat:derivedFields', fields);
     loadingToggle.remove();
     injectStyles(agent);
     const toggle = buildToggle();
@@ -312,7 +315,8 @@
       toggle.style.display = 'none';
       // If configuration requests user info and it's not stored yet, show pre-chat form
       const existing = getStoredUser();
-      const needsForm = Array.isArray(fields) && fields.length > 0 && (!existing || fields.some(f => !(existing && existing[f.key])));
+      const needsForm = FORCE_PRECHAT || (Array.isArray(fields) && fields.length > 0 && (!existing || fields.some(f => !(existing && existing[f.key]))));
+      log('prechat:decision', { FORCE_PRECHAT, existing, needsForm });
       if (needsForm) {
         const body = container.querySelector('#shopify-chat-widget-body');
         body.innerHTML = `
