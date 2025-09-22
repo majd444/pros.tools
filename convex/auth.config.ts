@@ -22,8 +22,12 @@ if (!clerkPublishableKey) {
   console.warn('NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is not set. Authentication will not work in production.');
 }
 
-// Use the exact domain from your Clerk JWT token
-const clerkDomain = 'https://direct-thrush-68.clerk.accounts.dev';
+// Use the exact domain from your Clerk JWT token. Prefer env to avoid hardcoding.
+// Example: CLERK_ISSUER_URL=https://direct-thrush-68.clerk.accounts.dev
+const clerkDomain = process.env.CLERK_ISSUER_URL || 'https://direct-thrush-68.clerk.accounts.dev';
+if (!process.env.CLERK_ISSUER_URL) {
+  console.warn('[convex/auth.config] CLERK_ISSUER_URL not set; falling back to hardcoded Clerk domain:', clerkDomain);
+}
 
 // JWT configuration
 // Must match the audience in your Clerk JWT template

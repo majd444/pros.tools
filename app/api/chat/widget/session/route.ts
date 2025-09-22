@@ -34,7 +34,48 @@ export async function POST(req: NextRequest) {
       body,
     });
     const text = await res.text();
-    const response = new NextResponse(text, {
+
+    // Attempt to parse and optionally augment with env-driven field config
+    let payload: unknown;
+    try { payload = JSON.parse(text); } catch { payload = null; }
+
+    if (payload && typeof payload === 'object') {
+      const pl = payload as { agent?: Record<string, any> };
+      const env = process.env as Record<string, string | undefined>;
+      // Label overrides
+      const labels: Record<string, string> = {
+        name: env.WIDGET_LABEL_NAME || '',
+        email: env.WIDGET_LABEL_EMAIL || '',
+        phone: env.WIDGET_LABEL_PHONE || '',
+        custom: env.WIDGET_LABEL_CUSTOM || '',
+      };
+      const cleanedLabels = Object.fromEntries(
+        Object.entries(labels).filter(([, v]) => !!v)
+      );
+
+      // Collection config via CSV or individual flags
+      const csv = (env.WIDGET_COLLECT_FIELDS || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      const flags = new Set(csv);
+      const bool = (v?: string) => (v || '').toLowerCase() === 'true';
+      if (bool(env.WIDGET_COLLECT_NAME)) flags.add('name');
+      if (bool(env.WIDGET_COLLECT_EMAIL)) flags.add('email');
+      if (bool(env.WIDGET_COLLECT_PHONE)) flags.add('phone');
+      if (bool(env.WIDGET_COLLECT_CUSTOM)) flags.add('custom');
+
+      const collectUserFields = Array.from(flags);
+
+      // Ensure agent object exists
+      pl.agent = pl.agent || {};
+      if (collectUserFields.length > 0) {
+        pl.agent.collectUserFields = collectUserFields;
+      }
+      if (Object.keys(cleanedLabels).length > 0) {
+        pl.agent.labels = { ...pl.agent.labels, ...cleanedLabels };
+      }
+    }
+
+    const responseBody = payload ? JSON.stringify(payload) : text;
+    const response = new NextResponse(responseBody, {
       status: res.status,
       headers: {
         "Content-Type": "application/json",

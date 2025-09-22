@@ -208,7 +208,7 @@ export const create = mutation({
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) {
       console.error("[createAgent] Unauthorized: No identity found")
-      throw new Error("Not authenticated. Please log in to create an agent.")
+      throw new ConvexError("Not authenticated. Please log in to create an agent.")
     }
 
     const userId = identity.subject
@@ -218,7 +218,7 @@ export const create = mutation({
     if (!args.name?.trim()) {
       const errorMsg = "Agent name is required"
       console.error(`[createAgent] Validation error: ${errorMsg}`)
-      throw new Error(errorMsg)
+      throw new ConvexError(errorMsg)
     }
 
     try {
@@ -259,7 +259,7 @@ export const create = mutation({
       console.error(`[createAgent] Error creating agent: ${errorMessage}`, error)
       
       // Re-throw with user-friendly message
-      throw new Error(`Failed to create agent: ${errorMessage}`)
+      throw new ConvexError(`Failed to create agent: ${errorMessage}`)
     }
   },
 })
