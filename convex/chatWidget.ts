@@ -14,6 +14,15 @@ type AgentResponse = {
   accentColor?: string;
   backgroundColor?: string;
   profileImage?: string;
+  // Pre-chat configuration (from agents.getPublic)
+  collectUserInfo?: boolean;
+  formFields?: Array<{
+    id: string;
+    type: string;
+    label: string;
+    required: boolean;
+    value?: string;
+  }>;
 };
 
 type SessionResponse = {
@@ -158,7 +167,7 @@ export const createWidgetSession = httpAction(async (ctx, req) => {
       },
     });
 
-    // Prepare the response with agent theming
+    // Prepare the response with agent theming and public pre-chat config
     const response: SessionResponse = {
       sessionId,
       agent: {
@@ -171,6 +180,16 @@ export const createWidgetSession = httpAction(async (ctx, req) => {
         accentColor: agent.accentColor,
         backgroundColor: agent.backgroundColor,
         profileImage: agent.profileImage,
+        collectUserInfo: Boolean((agent as any).collectUserInfo),
+        formFields: Array.isArray((agent as any).formFields)
+          ? (agent as any).formFields.map((f: any) => ({
+              id: String(f.id),
+              type: String(f.type || 'text'),
+              label: String(f.label || ''),
+              required: Boolean(f.required),
+              value: typeof f.value === 'string' ? f.value : undefined,
+            }))
+          : undefined,
       },
     };
 
