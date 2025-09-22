@@ -30,6 +30,12 @@
   const CONVEX_URL = currentScript.getAttribute('data-convex-url') || '';
   const BACKEND_URL = currentScript.getAttribute('data-backend-url') || '';
   const FORCE_PRECHAT = (currentScript.getAttribute('data-force-prechat') || '').toLowerCase() === 'true';
+  const COLLECT_FILTER = new Set(
+    (currentScript.getAttribute('data-collect-fields') || '')
+      .split(',')
+      .map(s => s.trim().toLowerCase())
+      .filter(Boolean)
+  );
   const SCRIPT_ORIGIN = (() => { try { return new URL(currentScript.src).origin; } catch { return ''; } })();
 
   function sanitizeBase(u){ return (u || '').replace(/\/$/, ''); }
@@ -301,22 +307,41 @@
     // Determine which user fields to collect based on Convex agent shape or legacy flags
     function deriveFields(initObj, agentObj){
       const out = [];
+      const wantsFilter = COLLECT_FILTER.size > 0;
+      const canonicalKind = (field) => {
+        const k = String(field.key || '').toLowerCase();
+        const lbl = String(field.label || '').toLowerCase();
+        const t = String(field.type || '').toLowerCase();
+        if (k === 'name' || /\bname\b/.test(lbl)) return 'name';
+        if (k === 'email' || t === 'email' || /email/.test(lbl)) return 'email';
+        if (k === 'phone' || t === 'tel' || /phone|tel/.test(lbl)) return 'phone';
+        if (k === 'custom') return 'custom';
+        return null;
+      };
       // New shape (Convex): collectUserInfo + formFields
       if (agentObj?.collectUserInfo && Array.isArray(agentObj?.formFields) && agentObj.formFields.length > 0) {
         agentObj.formFields.forEach(f => {
           if (!f || !f.id) return;
           out.push({ key: String(f.id), label: String(f.label || f.id), type: (f.type || 'text').toLowerCase(), required: !!f.required });
         });
-        return out;
+        const derived = out;
+        // Apply optional filter
+        const filtered = wantsFilter ? derived.filter(f => {
+          const kind = canonicalKind(f);
+          return kind ? COLLECT_FILTER.has(kind) : false;
+        }) : derived;
+        return filtered;
       }
       // Fallback templates when collectUserInfo is true but formFields is empty/missing
       if (agentObj?.collectUserInfo) {
-        return [
+        const templates = [
           { key: 'name', label: 'Name', type: 'text', required: true },
           { key: 'email', label: 'Email', type: 'email', required: true },
           { key: 'phone', label: 'Phone Number', type: 'tel', required: false },
           { key: 'custom', label: 'Custom', type: 'text', required: false },
         ];
+        const filtered = COLLECT_FILTER.size > 0 ? templates.filter(f => COLLECT_FILTER.has(f.key)) : templates;
+        return filtered;
       }
       // Legacy shapes for compatibility
       const cfgArray = initObj?.collectUserFields || agentObj?.collectUserFields || agentObj?.userFields || initObj?.userFields;
@@ -338,12 +363,14 @@
       }
       // If still empty and FORCE_PRECHAT is set, show default templates to unblock testing
       if (out.length === 0 && FORCE_PRECHAT) {
-        return [
+        const templates = [
           { key: 'name', label: 'Name', type: 'text', required: true },
           { key: 'email', label: 'Email', type: 'email', required: true },
           { key: 'phone', label: 'Phone Number', type: 'tel', required: false },
           { key: 'custom', label: 'Custom', type: 'text', required: false },
         ];
+        const filtered = COLLECT_FILTER.size > 0 ? templates.filter(f => COLLECT_FILTER.has(f.key)) : templates;
+        return filtered;
       }
       return out;
     }
