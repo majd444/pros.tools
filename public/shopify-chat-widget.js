@@ -153,7 +153,7 @@
       #shopify-chat-widget-header img { width: 10px; height: 10px; border-radius: 50%; object-fit: cover; }
       #shopify-chat-widget-close { font-size: 20px; line-height: 3; cursor: pointer; }
 
-      #shopify-chat-widget-body { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+      #shopify-chat-widget-body { display: flex; flex-direction: column; flex: 1; min-height: 0; padding-bottom: 0; }
       #shopify-chat-widget-messages { flex: 1; padding: 14px; overflow-y: auto; font-size: 16px; line-height: 1.6; background: ${agent.backgroundColor || '#fff'}; }
 
       .shopify-chat-row { display: flex; margin-bottom: 10px; }
@@ -171,14 +171,14 @@
       #shopify-chat-widget-toggle { position: fixed; bottom: 18px; right: 18px; background: ${agent.accentColor || '#2563eb'}; color: #fff; border-radius: 50%; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 999998; font-size: 24px; box-shadow: 0 4px 14px rgba(0,0,0,0.18); }
 
       /* Pre-chat form styles */
-      #shopify-chat-prechat { padding: 14px 14px 6px; background: #fff; border-top: 1px solid #f1f5f9; display: flex; flex-direction: column; height: 100%; min-height: 0; }
+      #shopify-chat-prechat { padding: 14px 14px 0; background: #fff; border-top: 1px solid #f1f5f9; display: flex; flex-direction: column; height: 100%; min-height: 0; }
       #shopify-chat-prechat .row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
       #shopify-chat-prechat label { font-size: 14px; color: #111827; }
       #shopify-chat-prechat label .req { color: #ef4444; margin-left: 2px; }
       #shopify-chat-prechat input { border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px 14px; font-size: 14px; }
       #shopify-chat-prechat .error { color: #dc2626; font-size: 12px; margin-bottom: 8px; }
-      #shopify-chat-prechat .actions { display: flex; justify-content: flex-end; margin-top: auto; padding-top: 8px; padding-bottom: 0; }
-      #shopify-chat-prechat button { background: #00D4FF; color: #fff; border: none; padding: 12px 16px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 16px; width: 100%; }
+      #shopify-chat-prechat .actions { display: flex; justify-content: flex-end; margin-top: auto; padding-top: 8px; padding-bottom: 0; position: sticky; bottom: 0; background: #fff; }
+      #shopify-chat-prechat button { background: #00D4FF; color: #fff; border: none; padding: 12px 16px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 16px; width: 100%; margin-bottom: 0; }
 
       @media (max-width: 640px) {
         #shopify-chat-widget-container { left: 0; right: 0; bottom: 0; width: 100vw; height: 70vh; max-height: none; border-radius: 16px 16px 0 0; }
