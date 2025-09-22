@@ -305,6 +305,16 @@ export const getPublic = query({
       accentColor: agent.accentColor,
       backgroundColor: agent.backgroundColor,
       profileImage: agent.profileImage,
+      collectUserInfo: Boolean(agent.collectUserInfo),
+      formFields: Array.isArray(agent.formFields)
+        ? agent.formFields.map((f: any) => ({
+            id: String(f.id),
+            type: String(f.type || 'text'),
+            label: String(f.label || ''),
+            required: Boolean(f.required),
+            value: typeof f.value === 'string' ? f.value : ''
+          }))
+        : [],
     };
   }
 });

@@ -299,6 +299,7 @@
     // Determine which user fields to collect based on Convex agent shape or legacy flags
     function deriveFields(initObj, agentObj){
       const out = [];
+      // New shape (Convex): collectUserInfo + formFields
       if (agentObj?.collectUserInfo && Array.isArray(agentObj?.formFields) && agentObj.formFields.length > 0) {
         agentObj.formFields.forEach(f => {
           if (!f || !f.id) return;
@@ -306,6 +307,16 @@
         });
         return out;
       }
+      // Fallback templates when collectUserInfo is true but formFields is empty/missing
+      if (agentObj?.collectUserInfo) {
+        return [
+          { key: 'name', label: 'Name', type: 'text', required: true },
+          { key: 'email', label: 'Email', type: 'email', required: true },
+          { key: 'phone', label: 'Phone Number', type: 'tel', required: false },
+          { key: 'custom', label: 'Custom', type: 'text', required: false },
+        ];
+      }
+      // Legacy shapes for compatibility
       const cfgArray = initObj?.collectUserFields || agentObj?.collectUserFields || agentObj?.userFields || initObj?.userFields;
       const flags = agentObj || {};
       const add = (key, label, type) => out.push({ key, label, type: type || (key === 'email' ? 'email' : key === 'phone' ? 'tel' : 'text'), required: false });
