@@ -12,7 +12,7 @@
      const scripts = Array.from(document.getElementsByTagName('script'));
      currentScript = scripts.reverse().find(s => {
        const src = s.getAttribute('src') || '';
-       return src.includes('shopify%20chat-widget.js') || src.includes('shopify chat-widget.js');
+       return src.includes('shopify%20chat-widget.js') || src.includes('shopify chat-widget.js') || src.includes('shopify-chat-widget.js');
      }) || null;
    }
    if (!currentScript) return;

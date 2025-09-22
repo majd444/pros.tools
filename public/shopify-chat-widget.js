@@ -29,6 +29,7 @@
   // Endpoint resolution
   const CONVEX_URL = currentScript.getAttribute('data-convex-url') || '';
   const BACKEND_URL = currentScript.getAttribute('data-backend-url') || '';
+  const FORCE_PRECHAT = (currentScript.getAttribute('data-force-prechat') || '').toLowerCase() === 'true';
   const SCRIPT_ORIGIN = (() => { try { return new URL(currentScript.src).origin; } catch { return ''; } })();
 
   function sanitizeBase(u){ return (u || '').replace(/\/$/, ''); }
@@ -59,6 +60,11 @@
 
   // Prevent duplicates
   if (document.getElementById('shopify-chat-widget-container') || document.getElementById('shopify-chat-widget-toggle')) return;
+
+  // Per-bot storage for collected user fields
+  const STORAGE_KEY = `chatWidget:user:${botId}`;
+  function getStoredUser(){ try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; } }
+  function setStoredUser(data){ try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {} }
 
   async function fetchAgentConfig(id){
     const url = ENDPOINTS.session;
@@ -157,6 +163,15 @@
 
       #shopify-chat-widget-toggle { position: fixed; bottom: 18px; right: 18px; background: ${agent.accentColor || '#2563eb'}; color: #fff; border-radius: 50%; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 999998; font-size: 24px; box-shadow: 0 4px 14px rgba(0,0,0,0.18); }
 
+      /* Pre-chat form styles */
+      #shopify-chat-prechat { padding: 14px; display: flex; flex-direction: column; gap: 10px; background: ${agent.backgroundColor || '#fff'}; }
+      #shopify-chat-prechat .row { display: flex; flex-direction: column; gap: 6px; }
+      #shopify-chat-prechat label { font-size: 12px; color: #111827; }
+      #shopify-chat-prechat input { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+      #shopify-chat-prechat .error { color: #dc2626; font-size: 12px; }
+      #shopify-chat-prechat .actions { display: flex; justify-content: flex-end; margin-top: 6px; }
+      #shopify-chat-prechat button { background: ${agent.accentColor || '#2563eb'}; color: #fff; border: none; padding: 10px 14px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 14px; }
+
       @media (max-width: 640px) {
         #shopify-chat-widget-container { left: 0; right: 0; bottom: 0; width: 100vw; height: 70vh; max-height: none; border-radius: 16px 16px 0 0; }
         #shopify-chat-widget-toggle { bottom: 16px; right: 16px; width: 50px; height: 50px; font-size: 22px; }
@@ -224,10 +239,23 @@
     async function send(value){
       try {
         log('chat:send', { value, url: ENDPOINTS.chat, via: ENDPOINTS.via });
+        const stored = getStoredUser() || undefined;
+        let userFields, userInfo;
+        if (stored && typeof stored === 'object') {
+          userFields = stored;
+          userInfo = {
+            name: stored.name || stored["field-name"] || stored["name"] || undefined,
+            email: stored.email || stored["field-email"] || stored["email"] || undefined,
+            phone: stored.phone || stored["field-phone"] || stored["phone"] || undefined,
+            custom: stored.custom || undefined,
+          };
+          Object.keys(userInfo).forEach(k => userInfo[k] === undefined && delete userInfo[k]);
+          if (Object.keys(userInfo).length === 0) userInfo = undefined;
+        }
         const res = await fetch(ENDPOINTS.chat, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-source': 'shopify-widget' },
-          body: JSON.stringify({ sessionId, agentId: botId, message: value, history: [] }),
+          body: JSON.stringify({ sessionId, agentId: botId, message: value, history: [], user: userInfo, userFields }),
         });
         const txt = await res.text();
         log('chat:reply', { status: res.status, body: txt?.slice(0,200) });
@@ -257,6 +285,7 @@
     document.body.appendChild(loadingToggle);
 
     const init = await fetchAgentConfig(botId);
+    log('init:payload', init);
     if (!init || !init.agent || !init.sessionId) {
       loadingToggle.textContent = '⚠️';
       loadingToggle.title = 'Failed to load chat widget';
@@ -266,21 +295,138 @@
 
     const agent = init.agent;
     const sessionId = init.sessionId;
+    
+    // Determine which user fields to collect based on Convex agent shape or legacy flags
+    function deriveFields(initObj, agentObj){
+      const out = [];
+      if (agentObj?.collectUserInfo && Array.isArray(agentObj?.formFields) && agentObj.formFields.length > 0) {
+        agentObj.formFields.forEach(f => {
+          if (!f || !f.id) return;
+          out.push({ key: String(f.id), label: String(f.label || f.id), type: (f.type || 'text').toLowerCase(), required: !!f.required });
+        });
+        return out;
+      }
+      const cfgArray = initObj?.collectUserFields || agentObj?.collectUserFields || agentObj?.userFields || initObj?.userFields;
+      const flags = agentObj || {};
+      const add = (key, label, type) => out.push({ key, label, type: type || (key === 'email' ? 'email' : key === 'phone' ? 'tel' : 'text'), required: false });
+      const labelFrom = (k, fallback) => initObj?.labels?.[k] || agentObj?.labels?.[k] || agentObj?.[`${k}Label`] || initObj?.[`${k}Label`] || fallback;
+      if (Array.isArray(cfgArray)) {
+        cfgArray.forEach(k => {
+          if (k === 'name') add('name', labelFrom('name', 'Name'));
+          if (k === 'email') add('email', labelFrom('email', 'Email'), 'email');
+          if (k === 'phone') add('phone', labelFrom('phone', 'Phone number'), 'tel');
+          if (k === 'custom') add('custom', labelFrom('custom', 'Custom'));
+        });
+      } else {
+        if (flags.collectName) add('name', labelFrom('name', 'Name'));
+        if (flags.collectEmail) add('email', labelFrom('email', 'Email'), 'email');
+        if (flags.collectPhone) add('phone', labelFrom('phone', 'Phone number'), 'tel');
+        if (flags.collectCustom) add('custom', labelFrom('custom', 'Custom'));
+      }
+      return out;
+    }
+
+    const fields = deriveFields(init, agent);
+    log('prechat:derivedFields', fields);
     loadingToggle.remove();
     injectStyles(agent);
     const toggle = buildToggle();
     const container = buildContainer(agent);
 
     const closeBtn = container.querySelector('#shopify-chat-widget-close');
+    function showPrechatOrChat(){
+      const existing = getStoredUser();
+      const needsForm = FORCE_PRECHAT || (Array.isArray(fields) && fields.length > 0 && (!existing || fields.some(f => !(existing && existing[f.key]))));
+      log('prechat:decision', { FORCE_PRECHAT, existing, needsForm, fields });
+      if (needsForm) {
+        const body = container.querySelector('#shopify-chat-widget-body');
+        body.innerHTML = `
+          <div id="shopify-chat-prechat"></div>
+        `;
+        const pre = body.querySelector('#shopify-chat-prechat');
+        const inputs = {};
+        const errorEl = document.createElement('div');
+        errorEl.className = 'error';
+        const fragment = document.createDocumentFragment();
+        const initialValuesLog = {};
+        fields.forEach(f => {
+          const row = document.createElement('div');
+          row.className = 'row';
+          const label = document.createElement('label');
+          label.textContent = (f.label || f.key) + (f.required ? ' *' : '');
+          const input = document.createElement('input');
+          const itype = (f.type || '').toLowerCase();
+          input.type = itype === 'email' ? 'email' : (itype === 'tel' || itype === 'phone' ? 'tel' : 'text');
+          input.placeholder = f.label || f.key;
+          const existingVal = existing && existing[f.key];
+          const defaultVal = (f.value != null) ? String(f.value) : '';
+          if (existingVal) {
+            input.value = existingVal;
+            initialValuesLog[f.key] = { source: 'storage', value: existingVal };
+          } else if (defaultVal) {
+            input.value = defaultVal;
+            initialValuesLog[f.key] = { source: 'convex-default', value: defaultVal };
+          }
+          inputs[f.key] = input;
+          row.appendChild(label);
+          row.appendChild(input);
+          fragment.appendChild(row);
+        });
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+        const btn = document.createElement('button');
+        btn.textContent = 'Start chat';
+        actions.appendChild(btn);
+        pre.appendChild(fragment);
+        pre.appendChild(errorEl);
+        pre.appendChild(actions);
+
+        log('prechat:initialValues', initialValuesLog);
+        btn.addEventListener('click', () => {
+          const collected = {};
+          for (const f of fields) {
+            const v = (inputs[f.key]?.value || '').trim();
+            if ((f.type === 'email' || /email/i.test(f.label || '')) && v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+              errorEl.textContent = 'Please enter a valid email address.';
+              return;
+            }
+            if ((f.type === 'tel' || /phone|tel/i.test(f.label || '')) && v && v.replace(/\D/g, '').length < 7) {
+              errorEl.textContent = 'Please enter a valid phone number.';
+              return;
+            }
+            if (f.required && !v) {
+              errorEl.textContent = `${f.label || f.key} is required.`;
+              return;
+            }
+            if (v) collected[f.key] = v;
+          }
+          errorEl.textContent = '';
+          if (Object.keys(collected).length > 0) setStoredUser(collected);
+          renderChatUI(container, agent, sessionId);
+        });
+      } else {
+        renderChatUI(container, agent, sessionId);
+      }
+    }
+
     toggle.addEventListener('click', () => {
       container.style.display = 'flex';
       toggle.style.display = 'none';
-      // Directly render chat UI
-      renderChatUI(container, agent, sessionId);
+      showPrechatOrChat();
     });
     closeBtn.addEventListener('click', () => {
       container.style.display = 'none';
       toggle.style.display = 'flex';
     });
+
+    // Auto-open the widget to show pre-chat in FORCE_PRECHAT or when required fields are configured and missing
+    const existingAuto = getStoredUser();
+    const requiresFormAuto = FORCE_PRECHAT || (Array.isArray(fields) && fields.length > 0 && (!existingAuto || fields.some(f => f.required && !(existingAuto && existingAuto[f.key]))));
+    if (requiresFormAuto) {
+      log('prechat:autoOpen', { requiresFormAuto, FORCE_PRECHAT, existingAuto, fields });
+      container.style.display = 'flex';
+      toggle.style.display = 'none';
+      showPrechatOrChat();
+    }
   })();
 })();
