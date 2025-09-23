@@ -48,6 +48,29 @@ function corsResponse(json: unknown, status = 200) {
   });
 }
 
+// Save pre-chat user info to the session metadata
+export const saveUserInfo = httpAction(async (ctx, req) => {
+  if (req.method === 'OPTIONS') {
+    return corsResponse({});
+  }
+  try {
+    const body = (await req.json().catch(() => ({}))) as {
+      sessionId?: Id<'chatSessions'>;
+      userInfo?: Record<string, string>;
+    };
+    const sessionId = body.sessionId;
+    const userInfo = body.userInfo;
+    if (!sessionId || !userInfo || typeof userInfo !== 'object') {
+      return corsResponse({ error: 'sessionId and userInfo are required' }, 400);
+    }
+    await ctx.runMutation(api.sessions.updateSessionUserInfo, { sessionId, userInfo });
+    return corsResponse({ ok: true });
+  } catch (error) {
+    console.error('[saveUserInfo] error:', error);
+    return corsResponse({ error: 'Failed to save user info' }, 500);
+  }
+});
+
 // Handle CORS preflight requests
 const options = httpAction(async () => {
   return new Response(null, {
@@ -320,6 +343,12 @@ http.route({ path: "/api/chat/widget/chat", method: "POST", handler: widgetChat 
 http.route({ path: "/api/chat/widget/chat", method: "OPTIONS", handler: options });
 http.route({ path: "/chat/widget/chat", method: "POST", handler: widgetChat });
 http.route({ path: "/chat/widget/chat", method: "OPTIONS", handler: options });
+
+// User info routes
+http.route({ path: "/api/chat/widget/user", method: "POST", handler: saveUserInfo });
+http.route({ path: "/api/chat/widget/user", method: "OPTIONS", handler: options });
+http.route({ path: "/chat/widget/user", method: "POST", handler: saveUserInfo });
+http.route({ path: "/chat/widget/user", method: "OPTIONS", handler: options });
 
 // Telegram webhook handler in Convex to avoid platform auth issues
 type TelegramUpdate = {

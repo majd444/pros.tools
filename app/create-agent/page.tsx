@@ -219,12 +219,8 @@ function CreateAgentModal({ onClose }: CreateAgentModalProps) {
           'text/markdown',
           'application/json',
           'application/pdf',
-          'image/png',
-          'image/jpeg',
-          'image/webp',
-          'image/gif',
         ]
-        const allowedExtensions = ['.txt', '.md', '.json', '.pdf', '.png', '.jpg', '.jpeg', '.webp', '.gif']
+        const allowedExtensions = ['.txt', '.md', '.json', '.pdf']
         const fileExt = file.name.split('.').pop()?.toLowerCase() || ''
         
         if (!allowedTypes.some(t => file.type.includes(t.replace('*', ''))) && 
@@ -234,7 +230,6 @@ function CreateAgentModal({ onClose }: CreateAgentModalProps) {
         }
 
         const isPdf = file.type === 'application/pdf' || fileExt === 'pdf'
-        const isImage = file.type.startsWith('image/') || ['png','jpg','jpeg','webp','gif'].includes(fileExt)
 
         if (isPdf) {
           const formData = new FormData()
@@ -264,14 +259,6 @@ function CreateAgentModal({ onClose }: CreateAgentModalProps) {
               buttons: responseData.structured?.buttons || [],
               links: responseData.structured?.links || []
             }
-          }])
-          processedFiles.push(file.name)
-        } else if (isImage) {
-          // For images, we don't extract text; store a placeholder note for preview
-          setExtractedContents(prev => [...prev, {
-            url: file.name,
-            text: `[Image uploaded: ${file.type || fileExt}]`,
-            structured: { tabs: [], inputs: [], buttons: [], links: [] },
           }])
           processedFiles.push(file.name)
         } else if (file.type.startsWith('text/') || ['.txt', '.md', '.json'].includes(`.${fileExt}`)) {
@@ -376,9 +363,10 @@ function CreateAgentModal({ onClose }: CreateAgentModalProps) {
           headerColor,
           accentColor,
           backgroundColor,
+          profileImage: profileImage || undefined,
           collectUserInfo,
           formFields: formFieldsData
-        });
+        } as any);
         finalAgentId = agentIdState;
         console.log("[handleSave] Agent updated successfully:", finalAgentId);
       } else {
@@ -390,9 +378,10 @@ function CreateAgentModal({ onClose }: CreateAgentModalProps) {
           headerColor,
           accentColor,
           backgroundColor,
+          profileImage: profileImage || undefined,
           collectUserInfo,
           formFields: formFieldsData
-        });
+        } as any);
         finalAgentId = String(createdId);
         setAgentIdState(finalAgentId);
         console.log("[handleSave] Agent created successfully with ID:", finalAgentId);

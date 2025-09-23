@@ -340,7 +340,7 @@
     return container;
   }
 
-  function renderPreChatForm(container, agent, storedUser, onComplete) {
+  function renderPreChatForm(container, agent, sessionId, storedUser, onComplete) {
     const body = container.querySelector("#chat-widget-body");
     const defaults = storedUser || {};
     const fields = Array.isArray(agent.formFields) ? agent.formFields : [];
@@ -414,7 +414,7 @@
     body.appendChild(formEl);
     body.appendChild(note);
 
-    formEl.addEventListener("submit", (e) => {
+    formEl.addEventListener("submit", async (e) => {
       e.preventDefault();
       errorDiv.style.display = "none";
       errorDiv.textContent = "";
@@ -449,6 +449,17 @@
       }
 
       setStoredUser(data);
+      // Fire-and-forget persist to backend
+      try {
+        const url = `${ENDPOINTS.base}/user`;
+        await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, userInfo: data }),
+        });
+      } catch (err) {
+        log('prechat:saveUserInfo:error', err);
+      }
       onComplete();
     });
   }
@@ -535,6 +546,20 @@
 
     const agent = init.agent;
     const sessionId = init.sessionId;
+    // Persist any previously stored user info right away
+    try {
+      const existing = getStoredUser();
+      if (existing && typeof existing === 'object' && Object.keys(existing).length > 0) {
+        const url = `${ENDPOINTS.base}/user`;
+        await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, userInfo: existing }),
+        });
+      }
+    } catch (e) {
+      log('prechat:saveUserInfo:init:error', e);
+    }
     loadingToggle.remove();
     injectStyleFromAgent(agent);
     const toggle = buildToggle();
@@ -550,7 +575,7 @@
       const hasFields = Array.isArray(agent.formFields) && agent.formFields.length > 0;
       if (ENABLE_PRECHAT && agent.collectUserInfo && hasFields && (!storedUser || Object.keys(storedUser).length === 0)) {
         // Show pre-chat form first
-        renderPreChatForm(container, agent, storedUser, () => renderChatUI(container, agent, sessionId));
+        renderPreChatForm(container, agent, sessionId, storedUser, () => renderChatUI(container, agent, sessionId));
         log("ui:prechat:shown", { fields: agent.formFields?.length || 0 });
       } else {
         renderChatUI(container, agent, sessionId);

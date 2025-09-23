@@ -423,7 +423,7 @@
         pre.appendChild(actions);
 
         log('prechat:initialValues', initialValuesLog);
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
           const collected = {};
           for (const f of fields) {
             const v = (inputs[f.key]?.value || '').trim();
@@ -443,6 +443,17 @@
           }
           errorEl.textContent = '';
           if (Object.keys(collected).length > 0) setStoredUser(collected);
+          // Persist user info to backend (fire-and-forget)
+          try {
+            const url = `${ENDPOINTS.base}/user`;
+            await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sessionId, userInfo: collected }),
+            });
+          } catch (e) {
+            log('prechat:saveUserInfo:error', e);
+          }
           renderChatUI(container, agent, sessionId);
         });
       } else {

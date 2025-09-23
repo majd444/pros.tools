@@ -20,6 +20,29 @@ export const createSession = mutation({
   },
 });
 
+// Update session user info (merge into metadata.user)
+export const updateSessionUserInfo = mutation({
+  args: {
+    sessionId: v.id("chatSessions"),
+    userInfo: v.record(v.string(), v.string()),
+  },
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
+    if (!session) throw new Error("Session not found");
+    const prevMeta = (session.metadata || {}) as Record<string, unknown>;
+    const userPrev = (prevMeta as { user?: Record<string, string> }).user || {};
+    const nextMeta = {
+      ...prevMeta,
+      user: {
+        ...userPrev,
+        ...args.userInfo,
+      },
+    };
+    await ctx.db.patch(args.sessionId, { metadata: nextMeta });
+    return { ok: true as const };
+  },
+});
+
 // Get a session by ID
 export const getSession = query({
   args: { id: v.id("chatSessions") },

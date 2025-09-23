@@ -83,6 +83,7 @@ export const update = mutation({
     headerColor: v.string(),
     accentColor: v.string(),
     backgroundColor: v.string(),
+    profileImage: v.optional(v.union(v.string(), v.null())),
     collectUserInfo: v.boolean(),
     formFields: v.array(v.object({
       id: v.string(),
@@ -136,6 +137,8 @@ export const update = mutation({
         headerColor: /^#[0-9A-F]{6}$/i.test(args.headerColor) ? args.headerColor : "#3B82F6",
         accentColor: /^#[0-9A-F]{6}$/i.test(args.accentColor) ? args.accentColor : "#00D4FF",
         backgroundColor: /^#[0-9A-F]{6}$/i.test(args.backgroundColor) ? args.backgroundColor : "#FFFFFF",
+        // Persist profile image if provided; otherwise keep existing
+        profileImage: (args.profileImage !== undefined) ? (args.profileImage || undefined) : agent.profileImage,
         collectUserInfo: Boolean(args.collectUserInfo),
         formFields: args.formFields.map((field, index) => ({
           id: field.id || `field-${index}-${Date.now()}`,
