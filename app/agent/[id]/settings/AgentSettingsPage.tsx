@@ -361,8 +361,8 @@ export default function AgentSettingsPage() {
   const processFiles = useCallback(async (files: FileList): Promise<{ processedFiles: string[]; errors: string[] }> => {
     const errors: string[] = [];
     const processedFiles: string[] = [];
-    const allowedExtensions = ['.txt', '.md', '.json', '.pdf'];
-    const allowedTypes = ['text/', 'application/pdf'];
+    const allowedExtensions = ['.txt', '.md', '.json', '.pdf', '.png', '.jpg', '.jpeg', '.webp', '.gif'];
+    const allowedTypes = ['text/', 'application/pdf', 'image/'];
 
     for (const file of Array.from(files)) {
       try {
@@ -399,7 +399,7 @@ export default function AgentSettingsPage() {
           "text/markdown",
           "application/json",
           "application/pdf",
-        ].includes(file.type) || /\.(txt|md|json|pdf)$/i.test(file.name);
+        ].includes(file.type) || /\.(txt|md|json|pdf|png|jpg|jpeg|webp|gif)$/i.test(file.name) || file.type.startsWith('image/');
         if (!isAllowed) return;
 
         let content = "";
@@ -409,6 +409,10 @@ export default function AgentSettingsPage() {
           // PDF text extraction is experimental; store placeholder with metadata
           content = "[PDF uploaded: text extraction pending]";
           metadata = { ...metadata, note: "PDF extraction not implemented on client" };
+        } else if (file.type.startsWith('image/') || /\.(png|jpg|jpeg|webp|gif)$/i.test(file.name)) {
+          // Images: store a placeholder note; server-side extract can be implemented later
+          content = "[Image uploaded: content extraction not supported; stored metadata only]";
+          metadata = { ...metadata, note: "Image uploaded", width: undefined, height: undefined };
         } else {
           // Read text for txt/md/json
           const text = await file.text();
@@ -857,14 +861,14 @@ export default function AgentSettingsPage() {
                       multiple
                       className="hidden"
                       id="file-upload"
-                      accept=".txt,.md,.json,.pdf"
+                      accept=".txt,.md,.json,.pdf,.png,.jpg,.jpeg,.webp,.gif"
                       type="file"
                       onChange={handleFileUpload}
                     />
                     <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center text-blue-500 hover:text-blue-700">
                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-upload h-6 w-6 mx-auto mb-2" aria-hidden="true"><path d="M12 3v12"></path><path d="m17 8-5-5-5 5"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path></svg>
                       <p className="text-sm text-black">Click to upload or drag and drop</p>
-                      <p className="text-xs text-gray-600 mt-1">Supported formats: .txt, .md, .json, .pdf</p>
+                      <p className="text-xs text-gray-600 mt-1">Supported formats: .txt, .md, .json, .pdf, .png, .jpg, .jpeg, .webp, .gif</p>
                       <p className="text-xs text-gray-500 mt-1">(PDF text extraction is experimental)</p>
                     </label>
                   </div>

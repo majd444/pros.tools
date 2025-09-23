@@ -214,8 +214,17 @@ function CreateAgentModal({ onClose }: CreateAgentModalProps) {
           continue
         }
 
-        const allowedTypes = ['text/plain', 'text/markdown', 'application/json', 'application/pdf']
-        const allowedExtensions = ['.txt', '.md', '.json', '.pdf']
+        const allowedTypes = [
+          'text/plain',
+          'text/markdown',
+          'application/json',
+          'application/pdf',
+          'image/png',
+          'image/jpeg',
+          'image/webp',
+          'image/gif',
+        ]
+        const allowedExtensions = ['.txt', '.md', '.json', '.pdf', '.png', '.jpg', '.jpeg', '.webp', '.gif']
         const fileExt = file.name.split('.').pop()?.toLowerCase() || ''
         
         if (!allowedTypes.some(t => file.type.includes(t.replace('*', ''))) && 
@@ -224,7 +233,10 @@ function CreateAgentModal({ onClose }: CreateAgentModalProps) {
           continue
         }
 
-        if (file.type === 'application/pdf' || fileExt === 'pdf') {
+        const isPdf = file.type === 'application/pdf' || fileExt === 'pdf'
+        const isImage = file.type.startsWith('image/') || ['png','jpg','jpeg','webp','gif'].includes(fileExt)
+
+        if (isPdf) {
           const formData = new FormData()
           formData.append('file', file)
           const response = await fetch('/api/extract-file', {
@@ -252,6 +264,14 @@ function CreateAgentModal({ onClose }: CreateAgentModalProps) {
               buttons: responseData.structured?.buttons || [],
               links: responseData.structured?.links || []
             }
+          }])
+          processedFiles.push(file.name)
+        } else if (isImage) {
+          // For images, we don't extract text; store a placeholder note for preview
+          setExtractedContents(prev => [...prev, {
+            url: file.name,
+            text: `[Image uploaded: ${file.type || fileExt}]`,
+            structured: { tabs: [], inputs: [], buttons: [], links: [] },
           }])
           processedFiles.push(file.name)
         } else if (file.type.startsWith('text/') || ['.txt', '.md', '.json'].includes(`.${fileExt}`)) {
@@ -1026,7 +1046,7 @@ const FineTuningTab: React.FC<FineTuningTabProps> = ({
             className="hidden"
             id="file-upload"
             disabled={isExtracting}
-            accept=".txt,.md,.json,.pdf"
+            accept=".txt,.md,.json,.pdf,.png,.jpg,.jpeg,.webp,.gif"
           />
           <label
             htmlFor="file-upload"
