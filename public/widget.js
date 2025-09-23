@@ -551,11 +551,14 @@
       const existing = getStoredUser();
       if (existing && typeof existing === 'object' && Object.keys(existing).length > 0) {
         const url = `${ENDPOINTS.base}/user`;
-        await fetch(url, {
+        log('prechat:init:postingStoredUser', { url, via: ENDPOINTS.via, existing });
+        const res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sessionId, userInfo: existing }),
         });
+        const text = await res.text();
+        log('prechat:init:postStoredUser:response', { status: res.status, body: text?.slice(0,200) });
       }
     } catch (e) {
       log('prechat:saveUserInfo:init:error', e);
@@ -573,7 +576,9 @@
 
       const storedUser = getStoredUser();
       const hasFields = Array.isArray(agent.formFields) && agent.formFields.length > 0;
-      if (ENABLE_PRECHAT && agent.collectUserInfo && hasFields && (!storedUser || Object.keys(storedUser).length === 0)) {
+      // Show pre-chat if either (1) agent requires it and has fields and we have no stored data
+      // or (2) it is explicitly enabled via data-enable-prechat
+      if ((agent.collectUserInfo && hasFields && (!storedUser || Object.keys(storedUser).length === 0)) || ENABLE_PRECHAT) {
         // Show pre-chat form first
         renderPreChatForm(container, agent, sessionId, storedUser, () => renderChatUI(container, agent, sessionId));
         log("ui:prechat:shown", { fields: agent.formFields?.length || 0 });
