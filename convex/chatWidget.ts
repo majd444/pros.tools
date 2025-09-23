@@ -203,9 +203,9 @@ export const createWidgetSession = httpAction(async (ctx, req) => {
         accentColor: agent.accentColor,
         backgroundColor: agent.backgroundColor,
         profileImage: agent.profileImage,
-        collectUserInfo: Boolean((agent as any).collectUserInfo),
-        formFields: Array.isArray((agent as any).formFields)
-          ? (agent as any).formFields.map((f: any) => ({
+        collectUserInfo: Boolean((agent as unknown as AgentResponse).collectUserInfo),
+        formFields: Array.isArray((agent as unknown as AgentResponse).formFields)
+          ? ((agent as unknown as AgentResponse).formFields as NonNullable<AgentResponse['formFields']>).map((f) => ({
               id: String(f.id),
               type: String(f.type || 'text'),
               label: String(f.label || ''),
@@ -238,11 +238,13 @@ export const widgetChat = httpAction(async (ctx, req) => {
     const src = req.headers.get('x-source') || 'unknown';
     const origin = req.headers.get('origin') || 'unknown';
     console.log(`[widgetChat] source=${src} origin=${origin}`);
-    const { sessionId, agentId, message, history = [] } = body as {
-      sessionId: Id<"chatSessions">;
-      agentId: Id<"agents">;
+    const { sessionId, agentId, message, history = [], user, userFields } = body as {
+      sessionId: Id<'chatSessions'>;
+      agentId: Id<'agents'>;
       message: string;
       history?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+      user?: Partial<{ name: string; email: string; phone: string; custom: string }>;
+      userFields?: Record<string, string>;
     };
 
     if (!sessionId || !agentId || !message) {
@@ -257,6 +259,26 @@ export const widgetChat = httpAction(async (ctx, req) => {
 
     if (session.agentId !== agentId) {
       return corsResponse({ error: 'Session does not belong to this agent' }, 403);
+    }
+
+    // If user info was provided, persist it to session metadata before saving the message
+    try {
+      const merged: Record<string, string> = {};
+      if (user && typeof user === 'object') {
+        Object.entries(user).forEach(([k, v]) => {
+          if (typeof v === 'string' && v.trim()) merged[k] = v.trim();
+        });
+      }
+      if (userFields && typeof userFields === 'object') {
+        Object.entries(userFields).forEach(([k, v]) => {
+          if (typeof v === 'string' && v.trim()) merged[k] = v.trim();
+        });
+      }
+      if (Object.keys(merged).length > 0) {
+        await ctx.runMutation(api.sessions.updateSessionUserInfo, { sessionId, userInfo: merged });
+      }
+    } catch (e) {
+      console.warn('[widgetChat] Failed to save user info on chat:', e);
     }
 
     // Get the agent (public)

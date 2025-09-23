@@ -503,6 +503,20 @@
       try {
         log("chat:send", { value, url: ENDPOINTS.chat, via: ENDPOINTS.via });
         const url = ENDPOINTS.chat;
+        // Gather any stored user info to persist and pass to the backend
+        const stored = getStoredUser() || undefined;
+        let userFields, userInfo;
+        if (stored && typeof stored === 'object') {
+          userFields = stored;
+          userInfo = {
+            name: stored.name || stored["field-name"] || stored["name"] || undefined,
+            email: stored.email || stored["field-email"] || stored["email"] || undefined,
+            phone: stored.phone || stored["field-phone"] || stored["phone"] || undefined,
+            custom: stored.custom || undefined,
+          };
+          Object.keys(userInfo).forEach(k => userInfo[k] === undefined && delete userInfo[k]);
+          if (Object.keys(userInfo).length === 0) userInfo = undefined;
+        }
         const res = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-source": "widget" },
@@ -510,7 +524,9 @@
             sessionId,
             agentId: botId,
             message: value,
-            history: []
+            history: [],
+            user: userInfo,
+            userFields
           }),
         });
         const txt = await res.text();

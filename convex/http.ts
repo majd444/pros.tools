@@ -3,7 +3,7 @@ import { httpAction } from "./_generated/server";
 import { api } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import nacl from "tweetnacl";
-import { createWidgetSession, widgetChat } from "./chatWidget";
+import { createWidgetSession, widgetChat, saveUserInfo } from "./chatWidget";
 
 function corsResponse(json: unknown, status = 200) {
   return new Response(JSON.stringify(json), {
@@ -686,6 +686,12 @@ http.route({ path: '/api/chat/widget/chat', method: 'POST', handler: widgetChat 
 http.route({ path: '/api/chat/widget/chat', method: 'OPTIONS', handler: options });
 http.route({ path: '/chat/widget/chat', method: 'POST', handler: widgetChat });
 http.route({ path: '/chat/widget/chat', method: 'OPTIONS', handler: options });
+
+// Persist pre-chat user info
+http.route({ path: '/api/chat/widget/user', method: 'POST', handler: saveUserInfo });
+http.route({ path: '/api/chat/widget/user', method: 'OPTIONS', handler: options });
+http.route({ path: '/chat/widget/user', method: 'POST', handler: saveUserInfo });
+http.route({ path: '/chat/widget/user', method: 'OPTIONS', handler: options });
 http.route({ path: '/api/telegram/webhook', method: 'POST', handler: telegramWebhook });
 http.route({ path: '/api/telegram/webhook', method: 'OPTIONS', handler: options });
 http.route({ path: '/telegram/webhook', method: 'POST', handler: telegramWebhook });
