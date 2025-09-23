@@ -14,6 +14,14 @@ const nextConfig: NextConfig = {
       'example.com' // Add any other domains you need
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/chat/widget/:path*',
+        destination: 'https://superb-eagle-611.convex.cloud/api/chat/widget/:path*',
+      },
+    ];
+  },
 };
 
 export default nextConfig;
