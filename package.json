@@ -2,6 +2,9 @@
   "name": "kk",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.18.1 <21"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
@@ -11,7 +14,7 @@
   "dependencies": {
     "@clerk/nextjs": "^6.32.0",
     "@clerk/themes": "^2.4.7",
-    "@prisma/client": "^6.14.0",
+    "@prisma/client": "^6.13.0",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-popover": "^1.1.14",
