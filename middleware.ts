@@ -27,71 +27,36 @@ const isPublicRoute = (pathname: string) => {
   );
 };
 
+// If Clerk environment variables are missing, bypass middleware to prevent 500s in production
 const hasClerkEnv =
   !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
   !!process.env.CLERK_SECRET_KEY;
 
-// If Clerk is not configured, bypass middleware to prevent 500s in production
 export default (!hasClerkEnv
-  ? (async (_req: Request) => {
+  ? function middleware() {
       return NextResponse.next();
-    })
+    }
   : clerkMiddleware(async (auth, req) => {
-  const { pathname } = req.nextUrl;
-  
-  // Skip middleware for public routes
-  if (isPublicRoute(pathname)) {
-    return NextResponse.next();
-  }
+      const { pathname } = req.nextUrl;
 
-  // Get the current session
-  const session = await auth();
-  
-  // Handle protected routes
-  if (isProtectedRoute(req)) {
-    // Check if user is signed in
-    const isSignedIn = session && 
-                      'userId' in session && 
-                      typeof session.userId === 'string' && 
-                      session.userId.length > 0;
-    
-    // If user is not signed in, redirect to sign-in
-    if (!isSignedIn) {
-      const signInUrl = new URL('/sign-in', req.url);
-      signInUrl.searchParams.set('redirect_url', pathname);
-      return NextResponse.redirect(signInUrl);
-    }
-  }
-
-  // Add Convex auth headers to the request
-  const requestHeaders = new Headers(req.headers);
-  
-  // Type guard to check if session has getToken method
-  type SessionWithToken = {
-    getToken: (options?: { template?: string }) => Promise<string | null>;
-  };
-  
-  const hasGetToken = (s: unknown): s is SessionWithToken => {
-    return !!s && typeof s === 'object' && 'getToken' in s && typeof (s as { getToken: unknown }).getToken === 'function';
-  };
-
-  if (hasGetToken(session)) {
-    try {
-      const token = await session.getToken({ template: 'convex' });
-      if (token) {
-        requestHeaders.set('Authorization', `Bearer ${token}`);
+      // Skip middleware for public routes
+      if (isPublicRoute(pathname)) {
+        return NextResponse.next();
       }
-    } catch (error) {
-      console.error('Error getting auth token:', error);
-    }
-  }
 
-  return NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  });
-}));
+      // Protected route handling
+      if (isProtectedRoute(req)) {
+        const { userId } = await auth();
+        if (!userId) {
+          const signInUrl = new URL('/sign-in', req.url);
+          signInUrl.searchParams.set('redirect_url', pathname);
+          return NextResponse.redirect(signInUrl);
+        }
+      }
+
+      // Do not mutate headers or call getToken() here to remain Edge-compatible
+      return NextResponse.next();
+    }));
 
 export const config = {
   matcher: [
